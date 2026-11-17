@@ -9,6 +9,7 @@ from dataclasses import dataclass
 
 from structuredai.config import Config
 from structuredai.gbnf_schemas import GBNF_GRAMMARS, SCHEMAS
+from structuredai.sys_probes import urlopen_safe
 
 _THINK_RE = re.compile(r"<think>.*?(?:</think>|$)", re.DOTALL | re.IGNORECASE)
 _JSON_FENCE_RE = re.compile(r"```(?:json)?\s*(\{.*\})\s*```", re.DOTALL)
@@ -65,7 +66,7 @@ class LLMClient:
     def _post(self, url: str, body: bytes, headers: dict[str, str]) -> dict:
         for attempt in range(3):
             try:
-                with urllib.request.urlopen(urllib.request.Request(url, data=body, headers=headers, method="POST"), timeout=self.cfg.llm_timeout_sec) as r:
+                with urlopen_safe(urllib.request.Request(url, data=body, headers=headers, method="POST"), timeout=self.cfg.llm_timeout_sec) as r:
                     return json.loads(r.read().decode("utf-8"))
             except urllib.error.HTTPError as exc:
                 if exc.code == 503 and attempt < 2:

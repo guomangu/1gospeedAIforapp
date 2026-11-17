@@ -5,8 +5,18 @@ import os
 import shutil
 import socket
 import struct
+import urllib.request
 from pathlib import Path
+from urllib.parse import urlparse
 
+
+def urlopen_safe(url_or_req, timeout: float):
+    """Open URL bypassing HTTP proxies for loopback hosts (127.0.0.1/localhost/::1)."""
+    url = url_or_req if isinstance(url_or_req, str) else url_or_req.full_url
+    host = (urlparse(url).hostname or "").lower()
+    if host in {"localhost", "::1"} or host.startswith("127."):
+        return urllib.request.build_opener(urllib.request.ProxyHandler({})).open(url_or_req, timeout=timeout)
+    return urllib.request.urlopen(url_or_req, timeout=timeout)
 
 class InstanceLock:
     """Exclusive non-blocking lock preventing concurrent runs on the same project."""
@@ -75,16 +85,11 @@ def read_gguf_arch(model_path: Path) -> str:
                     val = fp.read(min(vlen, 256)).decode("utf-8", errors="ignore")
                     if key == "general.architecture":
                         return val
-                elif vtype in (0, 1, 7):
-                    fp.seek(1, 1)
-                elif vtype in (2, 3):
-                    fp.seek(2, 1)
-                elif vtype in (4, 5, 6):
-                    fp.seek(4, 1)
-                elif vtype in (10, 11, 12):
-                    fp.seek(8, 1)
-                else:
-                    return ""
+                elif vtype in (0, 1, 7): fp.seek(1, 1)
+                elif vtype in (2, 3): fp.seek(2, 1)
+                elif vtype in (4, 5, 6): fp.seek(4, 1)
+                elif vtype in (10, 11, 12): fp.seek(8, 1)
+                else: return ""
     except (OSError, struct.error):
         pass
     return ""

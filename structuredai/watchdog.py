@@ -11,7 +11,7 @@ from urllib.parse import urlparse
 
 from structuredai.config import Config
 from structuredai.monorepo_router import IGNORED_DIRS
-from structuredai.sys_probes import free_disk_mb, read_cpu_temp_c, read_rss_mb
+from structuredai.sys_probes import free_disk_mb, read_cpu_temp_c, read_rss_mb, urlopen_safe
 
 
 class Watchdog:
@@ -24,7 +24,7 @@ class Watchdog:
 
     def _health_ok(self) -> bool:
         try:
-            with urllib.request.urlopen(f"http://{self.host}:{self.port}/health", timeout=1) as r:
+            with urlopen_safe(f"http://{self.host}:{self.port}/health", timeout=1) as r:
                 return r.status == 200
         except (urllib.error.URLError, TimeoutError, OSError):
             return False

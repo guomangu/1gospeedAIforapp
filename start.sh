@@ -1,14 +1,18 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# StructuredAI - Lanceur & Contrôle Opérationnel (.env + cgroup 1Go + Zed)
+# StructuredAI - Lanceur & Contrôle Opérationnel (.env + cgroup + Zed)
 # Usage : ./start.sh [start|doctor|status|pause|resume|priority <f>|retry <f>|stop]
 # ==============================================================================
+[ -z "${BASH_VERSION:-}" ] && exec bash "$0" "$@"
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ENV_FILE="${STRUCTURED_AI_ENV:-$ROOT_DIR/.env}"
 ACTION="${1:-start}"
-shift || true
+[ "$#" -gt 0 ] && shift
+
+export no_proxy="localhost,127.0.0.1,::1${no_proxy:+,$no_proxy}"
+export NO_PROXY="$no_proxy"
 
 if [ ! -f "$ENV_FILE" ]; then
   echo "[ERREUR] Fichier .env introuvable ($ENV_FILE). Lancez d'abord : ./install.sh" >&2

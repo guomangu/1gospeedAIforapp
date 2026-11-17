@@ -16,7 +16,7 @@ from structuredai.security_gate import PathJail
 from structuredai.stack_adapter import StackAdapter, build_deps_reality
 from structuredai.stack_detector import BUILTIN_STACKS, detect_stack
 from structuredai.steering import consume_directives, read_steering
-from structuredai.sys_probes import read_gguf_arch
+from structuredai.sys_probes import read_gguf_arch, urlopen_safe
 
 
 class TestMonorepoAndResilience(unittest.TestCase):
@@ -121,3 +121,28 @@ class TestMonorepoAndResilience(unittest.TestCase):
             ctx = {"cfg": cfg, "llm": llm, "jail": PathJail(proj), "stack": {"name": "node_ts", "code_exts": [".ts", ".tsx"]}, "nodes": {}, "exports": {}, "meta_dir": proj / ".orchestrator" / "tree"}
             with self.assertRaises(ValueError):
                 run_architect(ctx, "REQ-01")
+
+    def test_urlopen_safe_bypasses_proxy_for_loopback(self) -> None:
+        import os
+        from http.server import BaseHTTPRequestHandler, HTTPServer
+        from threading import Thread
+
+        class H(BaseHTTPRequestHandler):
+            def do_GET(self):
+                self.send_response(200); self.end_headers(); self.wfile.write(b"ok")
+            def log_message(self, *_):
+                pass
+
+        srv = HTTPServer(("127.0.0.1", 0), H)
+        t = Thread(target=srv.serve_forever, daemon=True); t.start()
+        old = {k: os.environ.get(k) for k in ("http_proxy", "no_proxy")}
+        try:
+            os.environ["http_proxy"] = "http://127.0.0.1:1"
+            os.environ["no_proxy"] = "localhost,127.0.0.0/8,::1"
+            with urlopen_safe(f"http://127.0.0.1:{srv.server_port}/health", timeout=2) as r:
+                self.assertEqual(r.status, 200)
+        finally:
+            srv.shutdown(); srv.server_close()
+            for k, v in old.items():
+                if v is None: os.environ.pop(k, None)
+                else: os.environ[k] = v
