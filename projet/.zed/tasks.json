@@ -1,0 +1,128 @@
+[
+  {
+    "label": "StructuredAI: Demarrer / Reprendre (start.sh)",
+    "command": "/home/gamo/Documents/politique AI/start.sh",
+    "args": [
+      "start"
+    ],
+    "reveal": "always",
+    "reveal_target": "dock",
+    "use_new_terminal": false,
+    "allow_concurrent_runs": false,
+    "env": {
+      "STRUCTURED_AI_ENV": "/home/gamo/Documents/politique AI/.env"
+    }
+  },
+  {
+    "label": "StructuredAI: Diagnostic Systeme (doctor)",
+    "command": "/home/gamo/Documents/politique AI/start.sh",
+    "args": [
+      "doctor"
+    ],
+    "reveal": "always",
+    "reveal_target": "dock",
+    "use_new_terminal": false,
+    "allow_concurrent_runs": true,
+    "env": {
+      "STRUCTURED_AI_ENV": "/home/gamo/Documents/politique AI/.env"
+    }
+  },
+  {
+    "label": "StructuredAI: Statut & Dashboard",
+    "command": "/home/gamo/Documents/politique AI/start.sh",
+    "args": [
+      "status"
+    ],
+    "reveal": "always",
+    "reveal_target": "dock",
+    "use_new_terminal": false,
+    "allow_concurrent_runs": true,
+    "env": {
+      "STRUCTURED_AI_ENV": "/home/gamo/Documents/politique AI/.env"
+    }
+  },
+  {
+    "label": "StructuredAI: Mettre en Pause",
+    "command": "/home/gamo/Documents/politique AI/start.sh",
+    "args": [
+      "pause"
+    ],
+    "reveal": "no_focus",
+    "reveal_target": "dock",
+    "use_new_terminal": false,
+    "allow_concurrent_runs": true,
+    "env": {
+      "STRUCTURED_AI_ENV": "/home/gamo/Documents/politique AI/.env"
+    }
+  },
+  {
+    "label": "StructuredAI: Reprendre apres Pause",
+    "command": "/home/gamo/Documents/politique AI/start.sh",
+    "args": [
+      "resume"
+    ],
+    "reveal": "no_focus",
+    "reveal_target": "dock",
+    "use_new_terminal": false,
+    "allow_concurrent_runs": true,
+    "env": {
+      "STRUCTURED_AI_ENV": "/home/gamo/Documents/politique AI/.env"
+    }
+  },
+  {
+    "label": "StructuredAI: Prioriser le Fichier Actif",
+    "command": "/home/gamo/Documents/politique AI/start.sh",
+    "args": [
+      "priority",
+      "$ZED_FILE"
+    ],
+    "reveal": "no_focus",
+    "reveal_target": "dock",
+    "use_new_terminal": false,
+    "allow_concurrent_runs": true,
+    "env": {
+      "STRUCTURED_AI_ENV": "/home/gamo/Documents/politique AI/.env"
+    }
+  },
+  {
+    "label": "StructuredAI: Relancer ce Noeud",
+    "command": "/home/gamo/Documents/politique AI/start.sh",
+    "args": [
+      "retry",
+      "$ZED_FILE"
+    ],
+    "reveal": "no_focus",
+    "reveal_target": "dock",
+    "use_new_terminal": false,
+    "allow_concurrent_runs": true,
+    "env": {
+      "STRUCTURED_AI_ENV": "/home/gamo/Documents/politique AI/.env"
+    }
+  },
+  {
+    "label": "StructuredAI: Arreter Proprement",
+    "command": "/home/gamo/Documents/politique AI/start.sh",
+    "args": [
+      "stop"
+    ],
+    "reveal": "always",
+    "reveal_target": "dock",
+    "use_new_terminal": false,
+    "allow_concurrent_runs": true,
+    "env": {
+      "STRUCTURED_AI_ENV": "/home/gamo/Documents/politique AI/.env"
+    }
+  },
+  {
+    "label": "StructuredAI: Tests du Framework (pytest)",
+    "command": "/home/gamo/Documents/politique AI/.venv/bin/pytest",
+    "args": [
+      "-q"
+    ],
+    "reveal": "always",
+    "reveal_target": "dock",
+    "use_new_terminal": false,
+    "allow_concurrent_runs": false,
+    "cwd": "/home/gamo/Documents/politique AI"
+  }
+]
