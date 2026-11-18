@@ -1,0 +1,47 @@
+{
+  "schema_version": 3,
+  "run_id": "run_1795028479",
+  "mode": "brownfield",
+  "stack": "node_ts",
+  "time_budget": {
+    "elapsed_active_seconds": 153.78534926400016,
+    "last_green_tag": "green-step-001",
+    "architect_waves": 99,
+    "idle_hardening_cycles": 10
+  },
+  "nodes": {
+    "backend/src/domain/types.ts": {
+      "state": "FAILED_MANUAL_REVIEW",
+      "purpose": "Define core ontological types (Groupe, Personne, Loi, Vote) and their relationships with transitions: draft -> debating -> voting -> merged -> enacted -> archived",
+      "depends_on": [],
+      "req_ids": [
+        "REQ-01",
+        "REQ-02",
+        "REQ-03",
+        "REQ-04",
+        "REQ-05",
+        "REQ-06",
+        "REQ-07"
+      ],
+      "is_entry": true,
+      "retries": 5,
+      "rebalance_cycles": 0,
+      "time_spent_seconds": 78.03833392899992,
+      "history_hashes": [
+        "fd32c25e9e461843",
+        "3cccd714df573bbc",
+        "c9c8d124313428fa",
+        "bf9a9a1a27c4e7d2",
+        "1607655e2e830c76"
+      ],
+      "last_error": "src/domain/types.ts(3,45): error TS2835: Relative import paths need explicit file extensions in ECMAScript imports when '--moduleResolution' is 'node16' or 'nodenext'. Did you mean './types.js'?\nsrc/domain/types.ts(19,13): error TS7051: Parameter has a name but no type. Did you mean 'arg0: Voting'?\n--- CONTEXT ---\n1: // SPDX-License-Identifier: MIT\n2: // Copyright (c) 2024 NodeNext Inc.\n3: import { Groupe, Personne, Loi, Vote } from './types';\n4: export type Draft = {\n5:   id: string;\n6: };",
+      "error_hashes": [
+        "0d8d139ecf92081e",
+        "40859dceea8ed3ed",
+        "af768e4a627b59c7",
+        "af768e4a627b59c7",
+        "4f11fb8c6d597b26"
+      ]
+    }
+  }
+}

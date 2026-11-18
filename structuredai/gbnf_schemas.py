@@ -1,5 +1,8 @@
 """JSON Schemas and GBNF grammars for the 6 stateless micro-agents."""
 
+import json
+import re
+
 _COMMON_GBNF = (
     'ws ::= ([ \\t\\n] ws)?\n'
     'string ::= "\\"" ([^"\\\\] | "\\\\" (["\\\\/bfnrt] | "u" [0-9a-fA-F]{4}))* "\\""\n'
@@ -12,7 +15,7 @@ def _obj(req: list[str], props: dict) -> dict:
 
 
 SCHEMAS: dict[str, dict] = {
-    "0_ARCHITECT": _obj(["files"], {"files": {"type": "array", "maxItems": 8, "items": _obj(
+    "0_ARCHITECT": _obj(["files"], {"files": {"type": "array", "maxItems": 6, "items": _obj(
         ["path", "purpose", "depends_on", "req_ids", "is_entry"],
         {"path": {"type": "string"}, "purpose": {"type": "string"}, "depends_on": _STR_ARR, "req_ids": _STR_ARR, "is_entry": {"type": "boolean"}},
     )}}),
@@ -43,3 +46,14 @@ GBNF_GRAMMARS: dict[str, str] = {
     "2_EXTRACT": 'root ::= "{" ws "\\"purpose_summary\\":" ws string "," ws "\\"side_effects\\":" ws string ws "}"\n' + _COMMON_GBNF,
     "5_SYNTHESIS": 'root ::= "{" ws "\\"optimized_code\\":" ws string "," ws "\\"test_path\\":" ws string "," ws "\\"test_code\\":" ws string ws "}"\n' + _COMMON_GBNF,
 }
+
+
+def schema_for(role: str, code_exts: tuple[str, ...] = ()) -> dict:
+    """Return role JSON schema, constraining 0_ARCHITECT file paths to stack code_exts."""
+    schema = json.loads(json.dumps(SCHEMAS[role]))
+    if role == "0_ARCHITECT" and code_exts:
+        alts = "|".join(re.escape(e.lstrip(".")) for e in code_exts if e.strip("."))
+        if alts:
+            pat = rf"^[a-zA-Z0-9_][a-zA-Z0-9_.-]*(/[a-zA-Z0-9_][a-zA-Z0-9_.-]*)*\.({alts})$"
+            schema["properties"]["files"]["items"]["properties"]["path"]["pattern"] = pat
+    return schema

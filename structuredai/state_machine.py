@@ -37,7 +37,7 @@ class OrchestratorEngine:
         ensure_steering_file(self.sdir / "STEERING.md"); self.git.ensure_ready(self.cfg.state_dir_name)
         spec_txt = self.cfg.spec_path.read_text(encoding="utf-8") if self.cfg.spec_path.is_file() else "REQ-01: Build core module."
         mode = detect_project_mode(self.cfg.target_dir, self.cfg.project_mode)
-        stack = detect_stack(self.cfg.target_dir, spec_txt, self.cfg)
+        stack = detect_stack(self.cfg.target_dir, spec_txt, self.cfg); self.llm.code_exts = tuple(stack.get("code_exts", []))
         deps_md, pkgs = build_deps_reality(self.cfg.target_dir, stack["name"])
         (self.sdir / "DEPS_REALITY.md").write_text(deps_md, encoding="utf-8")
         state = load_or_init_state(self.cfg, self.state_path, mode, stack["name"])

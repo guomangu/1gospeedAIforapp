@@ -31,7 +31,7 @@ def run_draft(ctx: dict, rel: str, node: dict, temp: float | None, hint: str) ->
     contract = cpath.read_text(encoding="utf-8") if cpath.exists() else node.get("purpose", "")
     real_ctx = "\n".join((ctx["meta_dir"] / d / "REALITY.md").read_text(encoding="utf-8") for d in node.get("depends_on", []) if (ctx["meta_dir"] / d / "REALITY.md").exists())
     secs = [("CONTRACT", contract), ("NEIGHBOR_REALITY", real_ctx), ("DEPS", ctx["deps_md"])]
-    if ex_p.is_file() and len(ex_txt := ex_p.read_text(encoding="utf-8", errors="ignore")).splitlines() <= cfg.max_lines_per_file:
+    if ex_p.is_file() and len((ex_txt := ex_p.read_text(encoding="utf-8", errors="ignore")).splitlines()) <= cfg.max_lines_per_file:
         secs.append(("EXISTING_CODE", wrap_untrusted(rel, ex_txt)))
     if hint or node.get("last_error"):
         secs.append(("FIX_HINT", f"{hint}\n{node.get('last_error', '')}".strip()))

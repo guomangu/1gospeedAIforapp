@@ -8,13 +8,16 @@ from unittest.mock import MagicMock
 
 from structuredai.brownfield import index_brownfield
 from structuredai.config_loader import build_config
+from structuredai.gbnf_schemas import schema_for
 from structuredai.git_tx import GitTx
 from structuredai.graph_ops import next_actionable_node
 from structuredai.pass_critique import run_architect
+from structuredai.passes import run_draft
 from structuredai.prompts import build_prompt
 from structuredai.security_gate import PathJail
 from structuredai.stack_adapter import StackAdapter, build_deps_reality
 from structuredai.stack_detector import BUILTIN_STACKS, detect_stack
+from structuredai.state_store import init_architect_with_retries, load_or_init_state
 from structuredai.steering import consume_directives, read_steering
 from structuredai.sys_probes import read_gguf_arch, urlopen_safe
 
@@ -146,3 +149,76 @@ class TestMonorepoAndResilience(unittest.TestCase):
             for k, v in old.items():
                 if v is None: os.environ.pop(k, None)
                 else: os.environ[k] = v
+
+    def test_architect_schema_pattern_dedup_deps_and_retry_hint(self) -> None:
+        import re
+        sch = schema_for("0_ARCHITECT", (".ts", ".tsx"))
+        pat = sch["properties"]["files"]["items"]["properties"]["path"]["pattern"]
+        self.assertRegex("backend/src/domain/laws.ts", pat)
+        self.assertRegex("frontend/src/components/web-badge.tsx", pat)
+        self.assertNotRegex("backend/src/domain/types", pat)
+        with tempfile.TemporaryDirectory() as td:
+            proj = Path(td)
+            cfg = build_config(proj / ".env")
+            calls: list[tuple[str, float | None]] = []
+
+            def fake_complete(_role: str, _sys_p: str, usr_p: str, temp=None):
+                calls.append((usr_p, temp))
+                m = MagicMock()
+                if len(calls) == 1:
+                    m.data = {"files": [{"path": "backend/src/domain/types", "purpose": "p", "depends_on": [], "req_ids": ["REQ-01"], "is_entry": False}]}
+                else:
+                    m.data = {"files": [
+                        {"path": "backend/src/domain/types.ts", "purpose": "p1", "depends_on": ["shared-db/schema.ts"], "req_ids": ["REQ-01"], "is_entry": False},
+                        {"path": "backend/src/domain/types.ts", "purpose": "p1", "depends_on": ["shared-db/schema.ts"], "req_ids": ["REQ-02"], "is_entry": False},
+                    ]}
+                return m
+
+            llm = MagicMock()
+            llm.complete.side_effect = fake_complete
+            state = load_or_init_state(cfg, proj / ".orchestrator" / "state.json", "brownfield", "node_ts")
+            ctx = {
+                "cfg": cfg, "llm": llm, "jail": PathJail(proj), "stack": {"name": "node_ts", "code_exts": [".ts", ".tsx"]},
+                "nodes": state["nodes"], "exports": {"backend/src/db/schema.ts": {"locations"}},
+                "meta_dir": proj / ".orchestrator" / "tree", "spec_text": "# SPEC\n- REQ-01\n- REQ-02",
+            }
+            init_architect_with_retries(ctx, state, proj / ".orchestrator" / "state.json")
+            self.assertEqual(len(calls), 2)
+            self.assertIn("FIX_HINT", calls[1][0])
+            self.assertIsNotNone(calls[1][1])
+            self.assertEqual(state["nodes"]["backend/src/domain/types.ts"]["depends_on"], ["backend/src/db/schema.ts"])
+            self.assertEqual(state["nodes"]["backend/src/domain/types.ts"]["req_ids"], ["REQ-01", "REQ-02"])
+            self.assertTrue(re.search(r"REQs|\['REQ-01', 'REQ-02'\]", (ctx["meta_dir"] / "backend/src/domain/types.ts" / "CONTRACT.md").read_text()))
+
+    def test_run_draft_reads_existing_file_without_error(self) -> None:
+        from structuredai.error_distiller import distill_error
+        with tempfile.TemporaryDirectory() as td:
+            proj = Path(td)
+            (proj / ".env").write_text(f"TARGET_PROJECT_DIR={proj}\n", encoding="utf-8")
+            cfg = build_config(proj / ".env")
+            target = proj / "mod.py"
+            target.write_text("def broken(:\n    pass\n", encoding="utf-8")
+            seen_usr: list[str] = []
+
+            def fake_complete(_role: str, _sys_p: str, usr_p: str, temp=None):
+                seen_usr.append(usr_p)
+                m = MagicMock()
+                m.data = {"filename": "mod.py", "code": "def ok() -> int:\n    return 1\n", "exports_summary": "ok"}
+                return m
+
+            llm = MagicMock()
+            llm.complete.side_effect = fake_complete
+            ctx = {
+                "cfg": cfg, "llm": llm, "jail": PathJail(proj),
+                "adapter": StackAdapter(proj, BUILTIN_STACKS["python"], cfg),
+                "stack": BUILTIN_STACKS["python"], "meta_dir": proj / ".orchestrator" / "tree",
+                "nodes": {}, "deps_md": "", "installed_pkgs": set(), "exports": {},
+            }
+            node = {"state": "1_DRAFT", "purpose": "return 1", "depends_on": [], "last_error": "SyntaxError line 1"}
+            st = run_draft(ctx, "mod.py", node, None, "")
+            self.assertEqual(st, "2_EXTRACT")
+            self.assertIn("EXISTING_CODE", seen_usr[0])
+            self.assertIn("def broken(:", seen_usr[0])
+            self.assertIn("FIX_HINT", seen_usr[0])
+            ts_ctx = distill_error("src/a.ts(3,10): error TS2835: use .js", "l1\nl2\nimport './x';\nl4\n")
+            self.assertIn("3: import './x';", ts_ctx)

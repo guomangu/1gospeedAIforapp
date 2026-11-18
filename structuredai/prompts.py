@@ -4,12 +4,13 @@ from structuredai.config import Config
 
 SYSTEM_PROMPTS: dict[str, str] = {
     "0_ARCHITECT": (
-        "Role: Software Architect ({stack}). Propose 3-6 NEW modular files (<= {max_files}/dir, depth <= {max_depth}) "
-        "mapping uncovered REQ-* ids. Do NOT repeat existing files. No circular deps. Return ONLY valid JSON."
+        "Role: Software Architect ({stack}). Propose 3-6 NEW UNIQUE files (extension {exts} required, <= {max_files}/dir, "
+        "depth <= {max_depth}) mapping uncovered REQ-* ids. Do NOT repeat existing files. "
+        "depends_on MUST list ONLY proposed paths or exact EXISTING files (no circular deps). Return ONLY valid JSON."
     ),
     "1_DRAFT": (
-        "Role: Unit Coder ({stack}). Implement ONLY the contract. Complete code without TODO, pass, ... or stubs. "
-        "Max {max_lines} lines. Use ONLY imports in NEIGHBOR_REALITY or DEPS (never invent packages like dotenv). Return ONLY valid JSON."
+        "Role: Unit Coder ({stack}). Implement ONLY the contract for this single file. Complete code without TODO, pass, ... or stubs. "
+        "Max {max_lines} lines. Import ONLY from NEIGHBOR_REALITY or DEPS (NodeNext uses .js suffix; never self-import or invent modules). Return ONLY valid JSON."
     ),
     "2_EXTRACT": (
         "Role: Semantic Summarizer. Given code and AST signatures, write <= 2 concise sentences describing purpose "
@@ -43,12 +44,13 @@ def wrap_untrusted(label: str, content: str) -> str:
     return f'<UNTRUSTED_CODE source="{label}">\n{safe}\n</UNTRUSTED_CODE>'
 
 
-def build_prompt(role: str, cfg: Config, sections: list[tuple[str, str]], stack_name: str | None = None) -> tuple[str, str]:
+def build_prompt(role: str, cfg: Config, sections: list[tuple[str, str]], stack_name: str | None = None, exts: str | None = None) -> tuple[str, str]:
     """Format compact prompt within LLM_CTX_SIZE, guaranteeing TARGET/FIX_HINT are never dropped."""
     sys_t = SYSTEM_PROMPTS[role].format(
         stack=stack_name or cfg.target_stack, max_files=cfg.max_files_per_dir,
         max_depth=cfg.max_tree_depth, max_lines=cfg.max_lines_per_file,
         min_split=cfg.min_split_lines, split_warn=max(60, int(cfg.max_lines_per_file * 0.85)),
+        exts=exts or "matching code",
     )
     budget = max(512, cfg.llm_ctx_size - cfg.llm_max_output_tokens - estimate_tokens(sys_t) - 256)
     non_empty = [(t, b.strip()) for t, b in sections if b.strip()]

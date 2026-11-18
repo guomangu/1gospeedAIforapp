@@ -1,0 +1,5 @@
+{"ts": "2026-11-18T19:02:00Z", "node": "backend/src/domain/types.ts", "from": "1_DRAFT", "to": "1_DRAFT", "horizon": "H0_INGEST"}
+{"ts": "2026-11-18T19:02:12Z", "node": "backend/src/domain/types.ts", "from": "1_DRAFT", "to": "1_DRAFT", "horizon": "H0_INGEST"}
+{"ts": "2026-11-18T19:02:27Z", "node": "backend/src/domain/types.ts", "from": "1_DRAFT", "to": "1_DRAFT", "horizon": "H0_INGEST"}
+{"ts": "2026-11-18T19:02:44Z", "node": "backend/src/domain/types.ts", "from": "1_DRAFT", "to": "1_DRAFT", "horizon": "H0_INGEST"}
+{"ts": "2026-11-18T19:03:04Z", "node": "backend/src/domain/types.ts", "from": "1_DRAFT", "to": "FAILED_MANUAL_REVIEW", "horizon": "H0_INGEST"}

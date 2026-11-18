@@ -35,9 +35,9 @@ def handle_idle_or_next_wave(ctx: dict, state: dict, tbm: TimeBudgetManager, sta
     waves = int(tb.get("architect_waves", 1))
     missing = uncovered_reqs(ctx["spec_text"], nodes)
     if missing and waves < 6 and not tbm.is_frozen():
-        hint = f"Uncovered REQs: {', '.join(missing)}. Add ONLY new files not in existing list; return [] if complete."
+        hint = f"WAVE_{waves + 1}: Uncovered REQs: {', '.join(missing)}. Add ONLY new files not in existing list; return [] if complete."
         try:
-            added = run_architect(ctx, f"{ctx['spec_text']}\n\n[WAVE_{waves + 1}]: {hint}", allow_empty=True)
+            added = run_architect(ctx, ctx["spec_text"], allow_empty=True, fix_hint=hint)
             new_nodes = [p for p in added if nodes.get(p, {}).get("state") == "1_DRAFT"]
             tb["architect_waves"] = (waves + 1) if new_nodes else 99
             if new_nodes:

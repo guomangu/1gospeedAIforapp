@@ -3,7 +3,7 @@
 import hashlib
 import re
 
-_LINE_RE = re.compile(r"(?:line\s+|:)(\d+)", re.IGNORECASE)
+_LINE_RE = re.compile(r"(?:\(|line\s+|:)(\d+)", re.IGNORECASE)
 _NOISE_RE = re.compile(r"(site-packages|node_modules|/usr/lib/)")
 
 

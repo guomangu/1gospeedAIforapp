@@ -32,7 +32,7 @@ def preflight_imports(code: str, ext: str, known_local_exports: dict[str, set[st
         errs = []
         avail = ", ".join(sorted(p for p in installed_pkgs if not p.startswith("node:") and not p.startswith("@types/"))[:15])
         for spec in _TS_IMPORT_RE.findall(code):
-            if spec.startswith((".", "@/", "node:")):
+            if spec.startswith((".", "@/", "node:")) or spec in {"crypto", "http", "https", "fs", "path", "url", "util", "assert", "events", "stream"}:
                 continue
             pkg = "/".join(spec.split("/")[:2]) if spec.startswith("@") else spec.split("/")[0]
             if pkg not in installed_pkgs:

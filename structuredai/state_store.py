@@ -57,14 +57,14 @@ def apply_steering(nodes: dict, d: SteeringDirectives, steering_path: Path) -> l
 
 def init_architect_with_retries(ctx: dict, state: dict, state_path: Path) -> None:
     """Retry initial 0_ARCHITECT decomposition up to max_retries on small-LLM format errors."""
-    spec = ctx["spec_text"]
     last_err = ""
-    for _ in range(ctx["cfg"].max_retries):
+    exts = ctx["stack"].get("code_exts", [])
+    for attempt in range(ctx["cfg"].max_retries):
         try:
-            prompt_spec = f"{spec}\n\n[FIX_HINT]: {last_err}" if last_err else spec
-            run_architect(ctx, prompt_spec)
+            tmp = min(0.65, ctx["cfg"].llm_temperature + 0.12 * attempt) if attempt > 0 else None
+            run_architect(ctx, ctx["spec_text"], fix_hint=last_err, temp=tmp)
             atomic_write_json(state_path, state)
             return
         except (RuntimeError, ValueError, TypeError, KeyError, OSError, PermissionError) as exc:
-            last_err = str(exc)[:300]
+            last_err = f"Previous error: {str(exc)[:220]}. Every path MUST be unique and end with {exts}."
     raise RuntimeError(f"0_ARCHITECT failed after retries: {last_err}")

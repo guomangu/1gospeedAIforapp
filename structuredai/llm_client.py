@@ -8,7 +8,7 @@ import urllib.request
 from dataclasses import dataclass
 
 from structuredai.config import Config
-from structuredai.gbnf_schemas import GBNF_GRAMMARS, SCHEMAS
+from structuredai.gbnf_schemas import GBNF_GRAMMARS, SCHEMAS, schema_for
 from structuredai.sys_probes import urlopen_safe
 
 _THINK_RE = re.compile(r"<think>.*?(?:</think>|$)", re.DOTALL | re.IGNORECASE)
@@ -43,7 +43,7 @@ class LLMClient:
     """Stateless client targeting llama-server, Ollama, or OpenAI-compatible APIs."""
 
     def __init__(self, cfg: Config) -> None:
-        self.cfg, self.consecutive_anomalies, self.avg_tps = cfg, 0, 0.0
+        self.cfg, self.consecutive_anomalies, self.avg_tps, self.code_exts = cfg, 0, 0.0, ()
 
     def _build_payload(self, role: str, sys_p: str, usr_p: str, temp: float | None) -> dict:
         model = self.cfg.llm_critique_model if (role == "3_CRITIQUE" and self.cfg.llm_critique_model) else self.cfg.llm_model
@@ -58,7 +58,7 @@ class LLMClient:
         if mode == "gbnf" and self.cfg.llm_provider == "llama_cpp" and role in GBNF_GRAMMARS:
             payload["grammar"] = GBNF_GRAMMARS[role]
         elif mode in {"gbnf", "json_schema"} and role in SCHEMAS:
-            payload["response_format"] = {"type": "json_schema", "json_schema": {"name": role, "strict": True, "schema": SCHEMAS[role]}}
+            payload["response_format"] = {"type": "json_schema", "json_schema": {"name": role, "strict": True, "schema": schema_for(role, self.code_exts)}}
         elif mode == "json_object":
             payload["response_format"] = {"type": "json_object"}
         return payload

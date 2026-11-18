@@ -55,3 +55,15 @@ def build_existing_brief(cfg: Config, nodes: dict, exports: dict[str, set[str]])
             st = nodes.get(rel, {}).get("state", "EXISTING")
             lines.append(f"- {rel} [{st}]")
     return "\n".join(lines)
+
+
+def resolve_deps(raw_deps: list[str], valid: set[str]) -> list[str]:
+    """Keep valid node/existing dependencies and resolve unique suffix matches (e.g. schema.ts)."""
+    out: list[str] = []
+    for raw in raw_deps:
+        d = raw.lstrip("./")
+        if d in valid:
+            out.append(d)
+        elif (matches := [v for v in sorted(valid) if v.endswith("/" + Path(d).name)]) and len(matches) == 1:
+            out.append(matches[0])
+    return list(dict.fromkeys(out))

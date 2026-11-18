@@ -2,27 +2,31 @@
 
 from pathlib import Path
 
-from structuredai.brownfield import build_existing_brief
+from structuredai.brownfield import build_existing_brief, resolve_deps
 from structuredai.error_distiller import distill_error
 from structuredai.graph_ops import detect_cycles, propagate_ripple
 from structuredai.prompts import build_prompt, wrap_untrusted
 from structuredai.validators import check_line_limit, check_placeholders
 
 
-def run_architect(ctx: dict, spec_text: str, allow_empty: bool = False) -> list[str]:
+def run_architect(ctx: dict, spec_text: str, allow_empty: bool = False, fix_hint: str = "", temp: float | None = None) -> list[str]:
     """0_ARCHITECT: decompose SPEC.md into DAG-verified node contracts."""
-    brief = build_existing_brief(ctx["cfg"], ctx["nodes"], ctx["exports"])
-    secs = [("SPEC", wrap_untrusted("SPEC.md", spec_text)), ("EXISTING", brief)]
-    sys_p, usr_p = build_prompt("0_ARCHITECT", ctx["cfg"], secs, ctx["stack"]["name"])
-    files = ctx["llm"].complete("0_ARCHITECT", sys_p, usr_p).data.get("files", [])
+    secs = [("SPEC", wrap_untrusted("SPEC.md", spec_text)), ("EXISTING", build_existing_brief(ctx["cfg"], ctx["nodes"], ctx["exports"]))]
+    if fix_hint:
+        secs.append(("FIX_HINT", fix_hint))
+    exts_list = sorted(set(ctx["stack"].get("code_exts", [])))
+    sys_p, usr_p = build_prompt("0_ARCHITECT", ctx["cfg"], secs, ctx["stack"]["name"], "/".join(exts_list))
+    resp = ctx["llm"].complete("0_ARCHITECT", sys_p, usr_p) if temp is None else ctx["llm"].complete("0_ARCHITECT", sys_p, usr_p, temp=temp)
+    files = resp.data.get("files", [])
     if not files:
         if allow_empty:
             return []
         raise ValueError("0_ARCHITECT returned empty files list")
-    deps = {f["path"].lstrip("./"): [d.lstrip("./") for d in f.get("depends_on", [])] for f in files}
+    raw_deps = {f["path"].lstrip("./"): f.get("depends_on", []) for f in files}
+    deps = {k: resolve_deps(v, set(raw_deps) | set(ctx["nodes"]) | set(ctx["exports"])) for k, v in raw_deps.items()}
     if cyc := detect_cycles(deps):
         raise ValueError(f"Circular dependency rejected in DAG: {' -> '.join(cyc)}")
-    exts = set(ctx["stack"].get("code_exts", []))
+    exts = set(exts_list)
     for rel in deps:
         if exts and Path(rel).suffix not in exts:
             raise ValueError(f"File '{rel}' must end with one of {sorted(exts)}")
@@ -33,14 +37,15 @@ def run_architect(ctx: dict, spec_text: str, allow_empty: bool = False) -> list[
         if len(Path(rel).parts) > ctx["cfg"].max_tree_depth:
             raise ValueError(f"Path exceeds MAX_TREE_DEPTH: {rel}")
         ctx["jail"].assert_writable_by_agent(rel)
-        ctx["nodes"].setdefault(rel, {
+        node = ctx["nodes"].setdefault(rel, {
             "state": "1_DRAFT", "purpose": f.get("purpose", ""), "depends_on": deps[rel],
-            "req_ids": f.get("req_ids", []), "is_entry": bool(f.get("is_entry", False)),
+            "req_ids": [], "is_entry": bool(f.get("is_entry", False)),
             "retries": 0, "rebalance_cycles": 0, "time_spent_seconds": 0.0, "history_hashes": [],
         })
+        node["req_ids"] = list(dict.fromkeys([*node.get("req_ids", []), *f.get("req_ids", [])]))
         cpath = ctx["meta_dir"] / rel / "CONTRACT.md"
         cpath.parent.mkdir(parents=True, exist_ok=True)
-        cpath.write_text(f"# CONTRACT: {rel}\n- deps: {deps[rel]}\n- reqs: {f.get('req_ids', [])}\n- purpose: {f.get('purpose', '')}\n", encoding="utf-8")
+        cpath.write_text(f"# CONTRACT: {rel}\n- deps: {deps[rel]}\n- reqs: {node['req_ids']}\n- purpose: {node['purpose']}\n", encoding="utf-8")
     return list(deps.keys())
 
 
@@ -49,10 +54,7 @@ def run_critique(ctx: dict, rel: str, node: dict) -> str:
     if node.get("rebalance_cycles", 0) >= ctx["cfg"].max_rebalance_cycles:
         return "5_SYNTHESIS"
     tracked = sorted(set(ctx["nodes"].keys()) | set(ctx["exports"].keys()))[:25]
-    realities = [
-        (ctx["meta_dir"] / p / "REALITY.md").read_text(encoding="utf-8")
-        for p in tracked if (ctx["meta_dir"] / p / "REALITY.md").is_file()
-    ]
+    realities = [(ctx["meta_dir"] / p / "REALITY.md").read_text(encoding="utf-8") for p in tracked if (ctx["meta_dir"] / p / "REALITY.md").is_file()]
     secs = [("SPEC", wrap_untrusted("SPEC.md", ctx["spec_text"])), ("REALITIES", "\n".join(realities)), ("TARGET", rel)]
     sys_p, usr_p = build_prompt("3_CRITIQUE", ctx["cfg"], secs, ctx["stack"]["name"])
     res = ctx["llm"].complete("3_CRITIQUE", sys_p, usr_p).data
