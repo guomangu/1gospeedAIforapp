@@ -48,10 +48,12 @@ GBNF_GRAMMARS: dict[str, str] = {
 }
 
 
-def schema_for(role: str, code_exts: tuple[str, ...] = ()) -> dict:
-    """Return role JSON schema, constraining 0_ARCHITECT file paths to stack code_exts."""
+def schema_for(role: str, code_exts: tuple[str, ...] = (), min_items: int = 1) -> dict:
+    """Return role JSON schema, constraining 0_ARCHITECT file count and stack code_exts."""
     schema = json.loads(json.dumps(SCHEMAS[role]))
-    if role == "0_ARCHITECT" and code_exts:
+    if role == "0_ARCHITECT":
+        if min_items > 1:
+            schema["properties"]["files"]["minItems"] = min_items
         alts = "|".join(re.escape(e.lstrip(".")) for e in code_exts if e.strip("."))
         if alts:
             pat = rf"^[a-zA-Z0-9_][a-zA-Z0-9_.-]*(/[a-zA-Z0-9_][a-zA-Z0-9_.-]*)*\.({alts})$"

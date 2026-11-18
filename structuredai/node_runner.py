@@ -46,6 +46,8 @@ class NodeRunner:
             self._maybe_integration_tag(state, ctx, node["state"])
         node["time_spent_seconds"] = float(node.get("time_spent_seconds", 0.0)) + (time.monotonic() - t0)
         append_event(self.eng.sdir / "events.jsonl", {"node": rel, "from": prev_st, "to": node["state"], "horizon": tbm.current_horizon()}, self.eng.cfg.max_events_log_mb)
+        locked = sum(1 for n in state["nodes"].values() if n.get("state") == "6_LOCKED")
+        print(f"[StructuredAI] {rel}: {prev_st} -> {node['state']} (locked={locked}/{len(state['nodes'])})", flush=True)
 
     def _run_reverify(self, ctx: dict, rel: str, node: dict) -> str:
         tp = node.get("test_path", "")

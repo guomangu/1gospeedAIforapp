@@ -1,46 +1,188 @@
 {
   "schema_version": 3,
-  "run_id": "run_1795028479",
+  "run_id": "run_1795029460",
   "mode": "brownfield",
   "stack": "node_ts",
   "time_budget": {
-    "elapsed_active_seconds": 153.78534926400016,
-    "last_green_tag": "green-step-001",
-    "architect_waves": 99,
-    "idle_hardening_cycles": 10
+    "elapsed_active_seconds": 372.8065003259999,
+    "last_green_tag": null,
+    "architect_waves": 1,
+    "idle_hardening_cycles": 0
   },
   "nodes": {
-    "backend/src/domain/types.ts": {
+    "backend/src/domain/impact-score/types.ts": {
       "state": "FAILED_MANUAL_REVIEW",
-      "purpose": "Define core ontological types (Groupe, Personne, Loi, Vote) and their relationships with transitions: draft -> debating -> voting -> merged -> enacted -> archived",
-      "depends_on": [],
+      "purpose": "Type definitions for impact score calculation (REQ-02)",
+      "depends_on": [
+        "harvester/src/db/schema.ts"
+      ],
       "req_ids": [
-        "REQ-01",
-        "REQ-02",
-        "REQ-03",
-        "REQ-04",
-        "REQ-05",
-        "REQ-06",
-        "REQ-07"
+        "REQ-02"
+      ],
+      "is_entry": false,
+      "retries": 5,
+      "rebalance_cycles": 0,
+      "time_spent_seconds": 97.20203324499971,
+      "history_hashes": [
+        "e3b0c44298fc1c14",
+        "bd46845f5c56fef5",
+        "36ce697afb547906",
+        "fb821d335ede3fe8",
+        "a84726fc3cc2be4f"
+      ],
+      "last_error": "SAME ERROR REPEATED: verify dependencies/signatures and simplify logic.\nNodeNext relative import './db/schema' must end with '.js' or be removed if file does not exist.; Missing local module './db/schema' (resolved 'backend/src/domain/impact-score/db/schema.ts'). Remove import or define symbols locally.",
+      "error_hashes": [
+        "2bb2358a2be76d47",
+        "9eb753cce35d0c5a",
+        "af826d0311b4a240",
+        "af826d0311b4a240",
+        "af826d0311b4a240"
+      ],
+      "temp_override": 0.35
+    },
+    "backend/src/domain/impact-score/machine.ts": {
+      "state": "FAILED_MANUAL_REVIEW",
+      "purpose": "Deterministic impact score machine (REQ-02)",
+      "depends_on": [
+        "harvester/src/db/schema.ts"
+      ],
+      "req_ids": [
+        "REQ-02"
       ],
       "is_entry": true,
       "retries": 5,
       "rebalance_cycles": 0,
-      "time_spent_seconds": 78.03833392899992,
+      "time_spent_seconds": 61.92765890699957,
       "history_hashes": [
-        "fd32c25e9e461843",
-        "3cccd714df573bbc",
-        "c9c8d124313428fa",
-        "bf9a9a1a27c4e7d2",
-        "1607655e2e830c76"
+        "e81dc475146c19cb",
+        "6697ca5976882237",
+        "9ab58f4457138389",
+        "8ae6166a2e3f9843",
+        "bfea8226030d9c57"
       ],
-      "last_error": "src/domain/types.ts(3,45): error TS2835: Relative import paths need explicit file extensions in ECMAScript imports when '--moduleResolution' is 'node16' or 'nodenext'. Did you mean './types.js'?\nsrc/domain/types.ts(19,13): error TS7051: Parameter has a name but no type. Did you mean 'arg0: Voting'?\n--- CONTEXT ---\n1: // SPDX-License-Identifier: MIT\n2: // Copyright (c) 2024 NodeNext Inc.\n3: import { Groupe, Personne, Loi, Vote } from './types';\n4: export type Draft = {\n5:   id: string;\n6: };",
+      "last_error": "SAME ERROR REPEATED: verify dependencies/signatures and simplify logic.\nNodeNext relative import './db/schema' must end with '.js' or be removed if file does not exist.; Missing local module './db/schema' (resolved 'backend/src/domain/impact-score/db/schema.ts'). Remove import or define symbols locally.",
       "error_hashes": [
-        "0d8d139ecf92081e",
-        "40859dceea8ed3ed",
-        "af768e4a627b59c7",
-        "af768e4a627b59c7",
-        "4f11fb8c6d597b26"
+        "4a59d7c80da7c5ec",
+        "af826d0311b4a240",
+        "af826d0311b4a240",
+        "71e86de13a4fd2fd",
+        "af826d0311b4a240"
+      ],
+      "temp_override": 0.35
+    },
+    "backend/src/domain/impact-score/utils.ts": {
+      "state": "FAILED_MANUAL_REVIEW",
+      "purpose": "Utility functions for score computation (REQ-02)",
+      "depends_on": [
+        "harvester/src/db/schema.ts"
+      ],
+      "req_ids": [
+        "REQ-02"
+      ],
+      "is_entry": false,
+      "retries": 5,
+      "rebalance_cycles": 0,
+      "time_spent_seconds": 71.14772188100005,
+      "history_hashes": [
+        "7d8ff7c16ba3a2b0",
+        "3c59ad7f920e2129",
+        "86a0b5dd5949f0b8",
+        "d09e2614397661af",
+        "13e567b9b0f5517b"
+      ],
+      "last_error": "SAME ERROR REPEATED: verify dependencies/signatures and simplify logic.\nNodeNext relative import '../../src/db/schema' must end with '.js' or be removed if file does not exist.; Missing local module '../../src/db/schema' (resolved 'backend/src/src/db/schema.ts'). Remove import or define symbols locally.",
+      "error_hashes": [
+        "2a55cd1625731dfa",
+        "40fe4ad123dfd02f",
+        "40fe4ad123dfd02f",
+        "40fe4ad123dfd02f",
+        "40fe4ad123dfd02f"
+      ],
+      "temp_override": 0.35
+    },
+    "backend/src/domain/impact-score/machine.spec.ts": {
+      "state": "FAILED_MANUAL_REVIEW",
+      "purpose": "Unit tests for impact score machine (REQ-02)",
+      "depends_on": [
+        "harvester/src/db/schema.ts"
+      ],
+      "req_ids": [
+        "REQ-02"
+      ],
+      "is_entry": false,
+      "retries": 5,
+      "rebalance_cycles": 0,
+      "time_spent_seconds": 57.39210672299987,
+      "history_hashes": [
+        "6053477de370bbc6",
+        "8ee1f799de77baa7",
+        "f4482884003b77bc",
+        "e23378c58fc01c71",
+        "afbdeb60d0e2cdad"
+      ],
+      "last_error": "Uninstalled npm package '@jest/globals'. Use ONLY: @expo/ui, @hono/node-server, @prisma/client, bullmq, drizzle-orm, expo, expo-constants, expo-device, expo-font, expo-glass-effect, expo-image, expo-linking, expo-router, expo-splash-screen, expo-status-bar; Missing local module '../../harvester/src/db/schema.js' (resolved 'backend/src/harvester/src/db/schema.ts'). Remove import or define symbols locally.; Missing local module '../impact-score/machine.js' (resolved 'backend/src/domain/impact-scor",
+      "error_hashes": [
+        "fe627100fdb8647c",
+        "26de6713d5ea64c6",
+        "d6794628f6d97684",
+        "5d440d61bffb13aa",
+        "f12bf7a0d9e3f266"
+      ]
+    },
+    "backend/src/domain/impact-score/types.spec.ts": {
+      "state": "FAILED_MANUAL_REVIEW",
+      "purpose": "Type definition tests for impact score types (REQ-02)",
+      "depends_on": [
+        "harvester/src/db/schema.ts"
+      ],
+      "req_ids": [
+        "REQ-02"
+      ],
+      "is_entry": false,
+      "retries": 5,
+      "rebalance_cycles": 0,
+      "time_spent_seconds": 36.90262485700032,
+      "history_hashes": [
+        "6f0cc28b6dab7661",
+        "dfd5e58594a1cf70",
+        "f9be17ba5c795d1a",
+        "b8397e85e556e7b7",
+        "f685462fdb08b7ef"
+      ],
+      "last_error": "SAME ERROR REPEATED: verify dependencies/signatures and simplify logic.\nNodeNext relative import './db/schema' must end with '.js' or be removed if file does not exist.; Missing local module './db/schema' (resolved 'backend/src/domain/impact-score/db/schema.ts'). Remove import or define symbols locally.",
+      "error_hashes": [
+        "db516f53de133390",
+        "db516f53de133390",
+        "db516f53de133390",
+        "af826d0311b4a240",
+        "af826d0311b4a240"
+      ],
+      "temp_override": 0.35
+    },
+    "backend/src/domain/impact-score/machine.spec.web.ts": {
+      "state": "FAILED_MANUAL_REVIEW",
+      "purpose": "Web tests for impact score machine (REQ-02)",
+      "depends_on": [
+        "harvester/src/db/schema.ts"
+      ],
+      "req_ids": [
+        "REQ-02"
+      ],
+      "is_entry": false,
+      "retries": 3,
+      "rebalance_cycles": 0,
+      "time_spent_seconds": 40.60130431900052,
+      "history_hashes": [
+        "8fcabc79de130b81",
+        "8fcabc79de130b81",
+        "8fcabc79de130b81"
+      ],
+      "last_error": "Identical output repeated 3 times: tripping circuit breaker.\nRefactorer returned no files",
+      "ast_sig_hash": "dc8dfbe17d54873d",
+      "error_hashes": [
+        "7ec0dd050352fa88",
+        "c31eb60fd9ae0e69",
+        "7ec0dd050352fa88"
       ]
     }
   }

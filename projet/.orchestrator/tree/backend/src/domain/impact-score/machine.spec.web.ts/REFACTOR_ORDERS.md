@@ -1,0 +1,1 @@
+- [REMOVE_DUPLICATE] The file is already empty (0 lines) and does not contain any REQ-requirements. No split needed.

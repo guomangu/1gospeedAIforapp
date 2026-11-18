@@ -1,6 +1,7 @@
 """Safe brownfield indexing (skipping node_modules/data/docs) & architecture brief."""
 
 import os
+import re
 from pathlib import Path
 
 from structuredai.ast_reality import extract_symbols, format_reality_md, legacy_outline
@@ -48,13 +49,19 @@ def build_existing_brief(cfg: Config, nodes: dict, exports: dict[str, set[str]])
     lines: list[str] = []
     if subs:
         lines.append(f"Subprojects: {', '.join(subs)}")
-    existing = sorted(set(exports.keys()) | set(nodes.keys()))
+    planned = sorted(nodes.keys())
+    existing = planned + [k for k in sorted(exports.keys()) if k not in nodes]
     if existing:
         lines.append("Existing/planned files (do NOT duplicate):")
-        for rel in existing[:25]:
+        for rel in existing[:30]:
             st = nodes.get(rel, {}).get("state", "EXISTING")
             lines.append(f"- {rel} [{st}]")
     return "\n".join(lines)
+
+
+def min_arch_files(text: str, allow_empty: bool) -> int:
+    """Require >=3 files when multiple uncovered REQ-* remain and empty output is disallowed."""
+    return 1 if allow_empty else min(3, max(1, len(set(re.findall(r"\bREQ-\d+\b", text)))))
 
 
 def resolve_deps(raw_deps: list[str], valid: set[str]) -> list[str]:

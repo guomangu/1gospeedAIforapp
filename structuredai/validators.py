@@ -6,10 +6,10 @@ import sys
 from pathlib import Path
 
 from structuredai.config import Config
+from structuredai.monorepo_router import check_ts_imports
 
 _PLACEHOLDER_RE = re.compile(r"\b(TODO|FIXME|NotImplementedError)\b|//\s*rest of code|\.\.\.\s*$", re.MULTILINE)
 _TRIVIAL_ASSERT_RE = re.compile(r"assert\s+(True|1\s*==\s*1)|expect\(true\)\.toBe\(true\)|assert\.ok\(true\)", re.IGNORECASE)
-_TS_IMPORT_RE = re.compile(r"""(?:import|export)\s+(?:[^'"]*?\s+from\s+)?['"]([^'"]+)['"]""")
 
 
 def check_line_limit(rel_path: str, code: str, cfg: Config) -> str | None:
@@ -26,18 +26,10 @@ def check_placeholders(code: str) -> str | None:
     return f"Placeholder forbidden in code: {m.group(0)!r}" if m else None
 
 
-def preflight_imports(code: str, ext: str, known_local_exports: dict[str, set[str]], installed_pkgs: set[str]) -> list[str]:
-    """Verify local module symbols and installed third-party packages."""
-    if ext in {".ts", ".tsx", ".js", ".mjs"} and installed_pkgs:
-        errs = []
-        avail = ", ".join(sorted(p for p in installed_pkgs if not p.startswith("node:") and not p.startswith("@types/"))[:15])
-        for spec in _TS_IMPORT_RE.findall(code):
-            if spec.startswith((".", "@/", "node:")) or spec in {"crypto", "http", "https", "fs", "path", "url", "util", "assert", "events", "stream"}:
-                continue
-            pkg = "/".join(spec.split("/")[:2]) if spec.startswith("@") else spec.split("/")[0]
-            if pkg not in installed_pkgs:
-                errs.append(f"Uninstalled npm package '{pkg}'. Use ONLY: {avail}")
-        return errs
+def preflight_imports(code: str, ext: str, known_local_exports: dict[str, set[str]], installed_pkgs: set[str], rel_path: str = "") -> list[str]:
+    """Verify local module symbols, disallow TS self-imports, and check installed packages."""
+    if ext in {".ts", ".tsx", ".js", ".mjs"}:
+        return check_ts_imports(code, rel_path, known_local_exports, installed_pkgs)
     if ext != ".py":
         return []
     try:

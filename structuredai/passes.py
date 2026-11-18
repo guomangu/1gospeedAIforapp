@@ -29,9 +29,9 @@ def run_draft(ctx: dict, rel: str, node: dict, temp: float | None, hint: str) ->
     cfg, stack_name = ctx["cfg"], ctx["stack"]["name"]
     cpath, ex_p = ctx["meta_dir"] / rel / "CONTRACT.md", cfg.target_dir / rel
     contract = cpath.read_text(encoding="utf-8") if cpath.exists() else node.get("purpose", "")
-    real_ctx = "\n".join((ctx["meta_dir"] / d / "REALITY.md").read_text(encoding="utf-8") for d in node.get("depends_on", []) if (ctx["meta_dir"] / d / "REALITY.md").exists())
+    real_ctx = "\n".join((ctx["meta_dir"] / d / "REALITY.md").read_text(encoding="utf-8") for d in node.get("depends_on", []) if (ctx["meta_dir"] / d / "REALITY.md").exists()) or "NONE (standalone file; define all symbols locally, no local imports)"
     secs = [("CONTRACT", contract), ("NEIGHBOR_REALITY", real_ctx), ("DEPS", ctx["deps_md"])]
-    if ex_p.is_file() and len((ex_txt := ex_p.read_text(encoding="utf-8", errors="ignore")).splitlines()) <= cfg.max_lines_per_file:
+    if ex_p.is_file() and node.get("retries", 0) < 2 and len((ex_txt := ex_p.read_text(encoding="utf-8", errors="ignore")).splitlines()) <= cfg.max_lines_per_file:
         secs.append(("EXISTING_CODE", wrap_untrusted(rel, ex_txt)))
     if hint or node.get("last_error"):
         secs.append(("FIX_HINT", f"{hint}\n{node.get('last_error', '')}".strip()))
@@ -40,7 +40,7 @@ def run_draft(ctx: dict, rel: str, node: dict, temp: float | None, hint: str) ->
     ctx["_last_candidate"] = code
     err = val.check_line_limit(rel, code, cfg) or val.check_placeholders(code)
     if not err and cfg.enable_import_preflight:
-        err = "; ".join(val.preflight_imports(code, Path(rel).suffix, ctx["exports"], ctx["installed_pkgs"])) or None
+        err = "; ".join(val.preflight_imports(code, Path(rel).suffix, ctx["exports"], ctx["installed_pkgs"], rel)) or None
     if err:
         raise RuntimeError(err)
     _write_norm(ctx["jail"].assert_writable_by_agent(rel), code)

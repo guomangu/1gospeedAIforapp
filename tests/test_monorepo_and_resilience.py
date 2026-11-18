@@ -222,3 +222,33 @@ class TestMonorepoAndResilience(unittest.TestCase):
             self.assertIn("FIX_HINT", seen_usr[0])
             ts_ctx = distill_error("src/a.ts(3,10): error TS2835: use .js", "l1\nl2\nimport './x';\nl4\n")
             self.assertIn("3: import './x';", ts_ctx)
+
+    def test_ts_import_preflight_self_and_wave_non_abort(self) -> None:
+        from structuredai.brownfield import build_existing_brief
+        from structuredai.hardening import handle_idle_or_next_wave
+        from structuredai.time_budget import TimeBudgetManager
+        from structuredai.validators import preflight_imports
+
+        errs_self = preflight_imports("import { Loi } from './types';\n", ".ts", {"backend/src/db/schema.ts": {"locations"}}, {"hono"}, "backend/src/domain/types.ts")
+        self.assertTrue(any("Self-import" in e for e in errs_self))
+        errs_miss = preflight_imports("import { X } from './missing.js';\n", ".ts", {"backend/src/db/schema.ts": {"locations"}}, {"hono"}, "backend/src/domain/types.ts")
+        self.assertTrue(any("Missing local module" in e for e in errs_miss))
+        errs_ok = preflight_imports("import { locations } from '../db/schema.js';\n", ".ts", {"backend/src/db/schema.ts": {"locations"}}, {"hono"}, "backend/src/domain/types.ts")
+        self.assertEqual(errs_ok, [])
+        self.assertEqual(schema_for("0_ARCHITECT", (".ts", ".tsx"), min_items=3)["properties"]["files"]["minItems"], 3)
+
+        with tempfile.TemporaryDirectory() as td:
+            proj = Path(td)
+            (proj / ".env").write_text(f"TARGET_PROJECT_DIR={proj}\nMAX_IDLE_HARDENING_CYCLES=1\n", encoding="utf-8")
+            cfg = build_config(proj / ".env")
+            exports = {f"a/{i:02d}.ts": set() for i in range(30)}
+            brief = build_existing_brief(cfg, {"z_failed.ts": {"state": "FAILED_MANUAL_REVIEW"}}, exports)
+            self.assertIn("z_failed.ts [FAILED_MANUAL_REVIEW]", brief)
+            state = load_or_init_state(cfg, proj / ".orchestrator" / "state.json", "brownfield", "node_ts")
+            state["nodes"]["backend/src/domain/types.ts"] = {"state": "FAILED_MANUAL_REVIEW", "req_ids": ["REQ-01"]}
+            llm = MagicMock(); llm.complete.side_effect = ValueError("0_ARCHITECT returned empty files list")
+            ad = MagicMock(); ad.test_suite.return_value = (True, ""); ad.build_check.return_value = (True, "")
+            ctx = {"cfg": cfg, "llm": llm, "jail": PathJail(proj), "adapter": ad, "git": MagicMock(), "stack": {"name": "node_ts", "code_exts": [".ts"]}, "meta_dir": proj / ".orchestrator" / "tree", "nodes": state["nodes"], "exports": {}, "spec_text": "# SPEC\n- REQ-01\n- REQ-02"}
+            res = handle_idle_or_next_wave(ctx, state, TimeBudgetManager(3600), proj / ".orchestrator" / "state.json")
+            self.assertEqual(state["time_budget"]["architect_waves"], 2)
+            self.assertEqual(res, "H3_INCOMPLETE_SPEC")

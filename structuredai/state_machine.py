@@ -54,6 +54,7 @@ class OrchestratorEngine:
         self.wd.ensure_llm_ready()
         if not state["nodes"]:
             init_architect_with_retries(ctx, state, self.state_path)
+            print(f"[StructuredAI] Plan initial: {len(state['nodes'])} fichier(s) ({state['mode']}/{ctx['stack']['name']})", flush=True)
         reason, was_paused, rss = "TIME_BUDGET_COMPLETE", False, 0.0
         while not self.stop_flag:
             elapsed = tbm.tick(paused=was_paused)
@@ -96,3 +97,4 @@ class OrchestratorEngine:
         write_run_report(self.sdir / "RUN_REPORT.md", state, self.cfg, tbm.tick(), reason)
         render_dashboard(self.sdir / "DASHBOARD.md", state, self.cfg, "H4_FROZEN", tbm.tick(), self.last_rss, free_disk_mb(self.cfg.target_dir), self.wd.restarts, self.llm.avg_tps)
         atomic_write_json(self.state_path, state)
+        locked = sum(1 for n in state["nodes"].values() if n.get("state") == "6_LOCKED"); print(f"[StructuredAI] Fin ({reason}): {locked}/{len(state['nodes'])} verrouillés | {self.sdir / 'RUN_REPORT.md'}", flush=True)

@@ -5,12 +5,12 @@ from structuredai.config import Config
 SYSTEM_PROMPTS: dict[str, str] = {
     "0_ARCHITECT": (
         "Role: Software Architect ({stack}). Propose 3-6 NEW UNIQUE files (extension {exts} required, <= {max_files}/dir, "
-        "depth <= {max_depth}) mapping uncovered REQ-* ids. Do NOT repeat existing files. "
+        "depth <= {max_depth}) mapping 1-2 REQ-* ids per file (spread REQs across files). Do NOT repeat existing/failed files. "
         "depends_on MUST list ONLY proposed paths or exact EXISTING files (no circular deps). Return ONLY valid JSON."
     ),
     "1_DRAFT": (
-        "Role: Unit Coder ({stack}). Implement ONLY the contract for this single file. Complete code without TODO, pass, ... or stubs. "
-        "Max {max_lines} lines. Import ONLY from NEIGHBOR_REALITY or DEPS (NodeNext uses .js suffix; never self-import or invent modules). Return ONLY valid JSON."
+        "Role: Unit Coder ({stack}). Implement ONLY this single file using strict parameter types (name: Type). Complete code without TODO, "
+        "pass, ... or stubs. Max {max_lines} lines. Define all symbols locally when NEIGHBOR_REALITY is NONE (never self-import; NodeNext uses .js). Return ONLY valid JSON."
     ),
     "2_EXTRACT": (
         "Role: Semantic Summarizer. Given code and AST signatures, write <= 2 concise sentences describing purpose "

@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from structuredai.brownfield import build_existing_brief, resolve_deps
+from structuredai.brownfield import build_existing_brief, min_arch_files, resolve_deps
 from structuredai.error_distiller import distill_error
 from structuredai.graph_ops import detect_cycles, propagate_ripple
 from structuredai.prompts import build_prompt, wrap_untrusted
@@ -11,12 +11,14 @@ from structuredai.validators import check_line_limit, check_placeholders
 
 def run_architect(ctx: dict, spec_text: str, allow_empty: bool = False, fix_hint: str = "", temp: float | None = None) -> list[str]:
     """0_ARCHITECT: decompose SPEC.md into DAG-verified node contracts."""
-    secs = [("SPEC", wrap_untrusted("SPEC.md", spec_text)), ("EXISTING", build_existing_brief(ctx["cfg"], ctx["nodes"], ctx["exports"]))]
-    if fix_hint:
-        secs.append(("FIX_HINT", fix_hint))
+    secs = [("SPEC", wrap_untrusted("SPEC.md", spec_text)), ("EXISTING", build_existing_brief(ctx["cfg"], ctx["nodes"], ctx["exports"]))] + ([("FIX_HINT", fix_hint)] if fix_hint else [])
     exts_list = sorted(set(ctx["stack"].get("code_exts", [])))
     sys_p, usr_p = build_prompt("0_ARCHITECT", ctx["cfg"], secs, ctx["stack"]["name"], "/".join(exts_list))
-    resp = ctx["llm"].complete("0_ARCHITECT", sys_p, usr_p) if temp is None else ctx["llm"].complete("0_ARCHITECT", sys_p, usr_p, temp=temp)
+    ctx["llm"].arch_min_files = min_arch_files(fix_hint or spec_text, allow_empty)
+    try:
+        resp = ctx["llm"].complete("0_ARCHITECT", sys_p, usr_p) if temp is None else ctx["llm"].complete("0_ARCHITECT", sys_p, usr_p, temp=temp)
+    finally:
+        ctx["llm"].arch_min_files = 1
     files = resp.data.get("files", [])
     if not files:
         if allow_empty:
@@ -43,8 +45,7 @@ def run_architect(ctx: dict, spec_text: str, allow_empty: bool = False, fix_hint
             "retries": 0, "rebalance_cycles": 0, "time_spent_seconds": 0.0, "history_hashes": [],
         })
         node["req_ids"] = list(dict.fromkeys([*node.get("req_ids", []), *f.get("req_ids", [])]))
-        cpath = ctx["meta_dir"] / rel / "CONTRACT.md"
-        cpath.parent.mkdir(parents=True, exist_ok=True)
+        (cpath := ctx["meta_dir"] / rel / "CONTRACT.md").parent.mkdir(parents=True, exist_ok=True)
         cpath.write_text(f"# CONTRACT: {rel}\n- deps: {deps[rel]}\n- reqs: {node['req_ids']}\n- purpose: {node['purpose']}\n", encoding="utf-8")
     return list(deps.keys())
 
@@ -86,8 +87,7 @@ def run_rebalance(ctx: dict, rel: str, node: dict, temp: float | None) -> str:
             err = f"Split fragment too small (<{cfg.min_split_lines} lines): {fpath}"
         if err:
             raise RuntimeError(err)
-        dest = ctx["jail"].assert_writable_by_agent(fpath)
-        dest.parent.mkdir(parents=True, exist_ok=True)
+        (dest := ctx["jail"].assert_writable_by_agent(fpath)).parent.mkdir(parents=True, exist_ok=True)
         dest.write_text(fcode if fcode.endswith("\n") else fcode + "\n", encoding="utf-8")
         ok_syn, out_syn = ctx["adapter"].check_syntax(fpath)
         if not ok_syn:
